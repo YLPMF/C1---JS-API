@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="us">
+<head>
+	<meta charset="utf-8">
+	<title>jQuery UI Example Page</title>
+	<style>
+		body {
+			font-family: Bahnschrift, sans-serif;
+		}
+		.container {
+			width: 80%;
+			height: 100%;
+			display: flex;
+			flex-wrap: wrap;
+		}
+		.container .cell {
+			width: 11%;
+			height: 50px;
+			border: 2px solid black;
+			margin: 1px;
+			text-align: center;
+			line-height: 50px;
+			font-size: 16px;
+		}
+		.container.fullscreen {
+			width: 100%;
+		}
+		.container.fullscreen .cell {
+			height: 100px;
+		}
+		.file.fullscreen {
+			display: inline-table;
+			position: relative;
+			line-height: 25px;
+		}
+		.file.fullscreen input {
+			opacity: 0;
+			z-index: 1;
+			position: absolute;
+		}
+		.file.fullscreen label {
+			position: absolute;
+			left: 0;
+			display: contents;
+		}
+
+		.file.fullscreen.drag-over {
+			color: red;
+		}
+		.actions {
+			height: 50px;
+			line-height: 50px;
+		}
+		.actions button,
+		.actions .file{
+			background: lightgrey;
+			border: none;
+			padding: 5px 10px;
+			border-radius: 5px;
+		}
+	</style>
+</head>
+<body>
+
+	<div class="actions">
+		<button onclick="load_sample()" class="fullscreen">load sample</button>
+		<button onclick="export_data()" class="fullscreen">export data</button>
+		<button onclick="copy_to_clipboard()" class="fullscreen">copy-to-clipboard</button>
+		<button onclick="toggle_fullscreen()">toggle fullscreen</button>
+
+		<div class="file fullscreen">
+			<input type="file" id="dropdown" onchange="read_file(this)">
+			<label for="dropdown">Dropdown file here</label>
+		</div>
+	</div>
+
+	<div class="container"></div>
+
+<script src="external/jquery/jquery.js"></script>
+<script src="jquery-ui.js"></script>
+<script>
+
+	var items = [];
+
+	$(document).ready(function() {
+		for(let i = 0; i < 32; i++) {
+			$(".container").append('<div class="cell"></div>')
+		}
+
+		$('.file').bind('dragover', function(){
+			$(this).addClass('drag-over');
+		});
+		$('.file').bind('dragleave', function(){
+			$(this).removeClass('drag-over');
+		});
+
+		document.documentElement.addEventListener('fullscreenchange', (event) => {
+			if (!document.fullscreenElement) {
+				$('button.fullscreen').show();
+				$('.file.fullscreen').show();
+				$('.container').removeClass('fullscreen');
+			}
+		});
+	});
+
+	function update_cells() {
+		$(".cell").each(function (index) {
+			if(items[index] === "") {
+				items[index] = undefined;
+			}
+
+			$(this).html(items[index] === undefined ? "" : items[index]);
+		})
+	}
+
+	function toggle_fullscreen() {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen();
+			$('button.fullscreen').hide();
+			$('.file.fullscreen').hide();
+			$('.container').addClass('fullscreen');
+		} else {
+			if (document.exitFullscreen) {
+				document.exitFullscreen();
+				$('button.fullscreen').show();
+				$('.file.fullscreen').show();
+				$('.container').removeClass('fullscreen');
+			}
+		}
+	}
+
+	function get_last_element() {
+		let last_index;
+
+		for(let i = 0; i < 32; i++) {
+			if(items[i] !== undefined) {
+				last_index = i;
+			}
+		}
+
+		return last_index;
+	}
+
+	function get_export_data() {
+		let data = "VIP List\n\n";
+
+		for(let i = 0; i < get_last_element()+1; i++) {
+			data += "- " + (items[i] !== undefined ? items[i] : "") + "\n";
+		}
+
+		return data;
+	}
+
+	function copy_to_clipboard() {
+		navigator.clipboard.writeText(get_export_data());
+	}
+
+	function export_data() {
+
+		const a = document.createElement('a');
+		const blob = new Blob([get_export_data()]);
+		a.href = URL.createObjectURL(blob);
+		a.download = 'vip-list';                     //filename to download
+		a.click();
+	}
+
+	function load_sample() {
+		for(let i = 0; i < 32; i++) {
+			items[i] = undefined;
+		}
+		items[0] = "Andrew";
+		items[1] = "Robert";
+		items[2] = "Steve";
+
+		update_cells();
+	}
+
+	function read_file(input) {
+		let file = input.files[0];
+
+		let reader = new FileReader();
+
+		reader.readAsText(file);
+
+		reader.onload = function() {
+			let data = reader.result.split('\n');
+			data = data.splice(2, data.length);
+			data.forEach((e, i) => {
+				items[i] = e.replace("- ", "");
+			})
+
+			update_cells();
+		};
+
+	}
+
+	$(function() {
+		$(".container").sortable({
+			revert: true,
+			update: function( ) {
+				$(".cell").each(function (index) {
+					if($(this).html() !== "") {
+						items[index] = $(this).html();
+					}
+				})
+			}
+		});
+	});
+</script>
+</body>
+</html>
